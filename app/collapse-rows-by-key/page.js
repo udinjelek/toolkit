@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import Papa from "papaparse";
 import styles from "./page.module.css";
 
@@ -22,6 +22,119 @@ function findDefaultKeyIndex(headers) {
   );
   return idx >= 0 ? idx : null;
 }
+
+// Translations for the help panel
+const HELP_TRANSLATIONS = {
+  en: {
+    buttonOpen: "How it works",
+    buttonClose: "Hide",
+    title: "How it works",
+    intro: (
+      <>
+        This tool collapses multiple rows that belong to the same record into
+        one row. The grouping is controlled by a <strong>key column</strong> —
+        a column you choose where each non-blank value marks the start of a
+        new record. Rows where the key column is blank are treated as
+        continuations and merged into the previous record.
+      </>
+    ),
+    step1Title: "1. Start with a CSV where records are split across rows.",
+    step1Body: (
+      <>
+        Here the data spans many rows because different fields are logged at
+        slightly different moments. Notice column B (<em>Cell type</em>) — it
+        has <em>"Serving"</em> on some rows and is blank on others. The blank
+        rows are continuations of the most recent <em>"Serving"</em> row.
+      </>
+    ),
+    step2Title: "2. Pick that column as the key.",
+    step2Body: (
+      <>
+        The tool defaults to <em>Cell type</em> if it finds one. If a name
+        appears more than once, the column letter is shown in parentheses — e.g.{" "}
+        <em>Cell type (B)</em> vs <em>Cell type (J)</em> — so you know which
+        one you're selecting.
+      </>
+    ),
+    step3Title: "3. Get one consolidated row per record.",
+    step3Body: (
+      <>
+        Every continuation row folds upward into the most recent keyed row.
+        The output keeps the same columns, but each record is now a single
+        tidy row ready for analysis.
+      </>
+    ),
+    visualTitle: "How rows are grouped",
+    visualBody: (
+      <>
+        Each colored box is one record. The box starts at a row where{" "}
+        <em>Cell type</em> has a value (the key) and extends down through the
+        blank-key rows beneath it until the next keyed row appears. The arrows
+        show how values from continuation rows are merged into the keyed row
+        above them.
+      </>
+    ),
+    rulesLabel: "Rules:",
+    rulesBody:
+      "empty rows are skipped. Rows that appear before the first key value are dropped. If two rows in the same group both have a value in the same column, the later value wins.",
+  },
+  id: {
+    buttonOpen: "Cara kerja",
+    buttonClose: "Tutup",
+    title: "Cara kerja",
+    intro: (
+      <>
+        Alat ini menggabungkan beberapa baris yang termasuk dalam satu data
+        menjadi satu baris. Pengelompokan dikendalikan oleh{" "}
+        <strong>kolom kunci</strong> — kolom yang kamu pilih, di mana setiap
+        nilai yang tidak kosong menandai awal data baru. Baris yang kolom
+        kuncinya kosong dianggap sebagai lanjutan dan digabung ke data
+        sebelumnya.
+      </>
+    ),
+    step1Title:
+      "1. Mulai dengan CSV yang datanya terpecah ke beberapa baris.",
+    step1Body: (
+      <>
+        Di sini data tersebar di banyak baris karena tiap kolom dicatat pada
+        waktu yang sedikit berbeda. Perhatikan kolom B (<em>Cell type</em>) —
+        ada nilai <em>"Serving"</em> di beberapa baris dan kosong di baris
+        lainnya. Baris yang kosong adalah lanjutan dari baris{" "}
+        <em>"Serving"</em> sebelumnya.
+      </>
+    ),
+    step2Title: "2. Pilih kolom tersebut sebagai kunci.",
+    step2Body: (
+      <>
+        Alat ini otomatis memilih <em>Cell type</em> jika ditemukan. Jika ada
+        nama kolom yang muncul lebih dari sekali, huruf kolomnya akan
+        ditampilkan dalam tanda kurung — misalnya <em>Cell type (B)</em> vs{" "}
+        <em>Cell type (J)</em> — supaya kamu tahu mana yang dipilih.
+      </>
+    ),
+    step3Title: "3. Dapatkan satu baris utuh per data.",
+    step3Body: (
+      <>
+        Setiap baris lanjutan akan dilipat ke atas, masuk ke baris berkunci
+        terakhir. Hasilnya tetap pakai kolom yang sama, tapi tiap data
+        sekarang jadi satu baris rapi yang siap dianalisis.
+      </>
+    ),
+    visualTitle: "Cara baris dikelompokkan",
+    visualBody: (
+      <>
+        Tiap kotak berwarna adalah satu data. Kotak dimulai dari baris yang
+        kolom <em>Cell type</em>-nya berisi (baris kunci), lalu memanjang ke
+        bawah lewat baris-baris kosong sampai bertemu baris kunci berikutnya.
+        Tanda panah menunjukkan bagaimana nilai dari baris lanjutan
+        digabungkan ke baris kunci di atasnya.
+      </>
+    ),
+    rulesLabel: "Aturan:",
+    rulesBody:
+      "baris yang seluruhnya kosong akan dilewati. Baris yang muncul sebelum nilai kunci pertama akan dibuang. Jika dua baris dalam satu grup punya nilai di kolom yang sama, nilai yang lebih baru yang dipakai.",
+  },
+};
 
 // Core collapse logic
 function collapseRows(rows, keyIndex) {
@@ -64,7 +177,31 @@ export default function CollapseRowsByKeyPage() {
   const [error, setError] = useState("");
   const [processing, setProcessing] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [lang, setLang] = useState("en");
   const fileInputRef = useRef(null);
+
+  // Load saved language preference on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("toolkit:help-lang");
+      if (saved === "en" || saved === "id") {
+        setLang(saved);
+      }
+    } catch (e) {
+      // localStorage may be unavailable (private mode, etc.) — silently ignore
+    }
+  }, []);
+
+  const changeLang = (newLang) => {
+    setLang(newLang);
+    try {
+      localStorage.setItem("toolkit:help-lang", newLang);
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const t = HELP_TRANSLATIONS[lang];
 
   const handleFile = (selectedFile) => {
     if (!selectedFile) return;
@@ -181,7 +318,7 @@ export default function CollapseRowsByKeyPage() {
           onClick={() => setHelpOpen(!helpOpen)}
           aria-expanded={helpOpen}
         >
-          {helpOpen ? "Hide" : "How it works"}
+          {helpOpen ? t.buttonClose : t.buttonOpen}
         </button>
       </header>
 
@@ -196,35 +333,81 @@ export default function CollapseRowsByKeyPage() {
 
         {helpOpen && (
           <section className={styles.helpPanel}>
-            <h2 className={styles.helpTitle}>How it works</h2>
+            <div className={styles.helpHeader}>
+              <h2 className={styles.helpTitle}>{t.title}</h2>
+              <div className={styles.langToggle} role="group" aria-label="Language">
+                <button
+                  type="button"
+                  className={`${styles.langOption} ${lang === "en" ? styles.langOptionActive : ""}`}
+                  onClick={() => changeLang("en")}
+                  aria-pressed={lang === "en"}
+                >
+                  EN
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.langOption} ${lang === "id" ? styles.langOptionActive : ""}`}
+                  onClick={() => changeLang("id")}
+                  aria-pressed={lang === "id"}
+                >
+                  ID
+                </button>
+              </div>
+            </div>
+
+            <p className={styles.helpIntro}>{t.intro}</p>
+
+            <div className={styles.visualBlock}>
+              <div className={styles.visualHeader}>{t.visualTitle}</div>
+              <p className={styles.visualBody}>{t.visualBody}</p>
+              <img
+                src="/help/collapse-rows-by-key/logic-process.jpeg"
+                alt="Visual explanation of how rows are grouped by key"
+                className={styles.helpImage}
+              />
+            </div>
+
             <ol className={styles.helpSteps}>
               <li>
-                <strong>Upload a CSV.</strong> Data starts on row 2 (row 1 is
-                the header).
-                <div className={styles.helpImagePlaceholder}>
-                  <span>Screenshot: input file</span>
+                <div className={styles.helpStepText}>
+                  <strong>{t.step1Title}</strong>
+                  <p>{t.step1Body}</p>
                 </div>
+                <img
+                  src="/help/collapse-rows-by-key/input.jpeg"
+                  alt="Input CSV"
+                  className={styles.helpImage}
+                />
               </li>
+
               <li>
-                <strong>Pick the key column.</strong> Defaults to "Cell type" if
-                present. Rows with a value in this column start a new output
-                row. Blank-key rows are continuations.
-                <div className={styles.helpImagePlaceholder}>
-                  <span>Screenshot: key selection</span>
+                <div className={styles.helpStepText}>
+                  <strong>{t.step2Title}</strong>
+                  <p>{t.step2Body}</p>
                 </div>
+                <img
+                  src="/help/collapse-rows-by-key/pick-key.jpeg"
+                  alt="Picking the key column"
+                  className={styles.helpImage}
+                />
               </li>
+
               <li>
-                <strong>Process &amp; download.</strong> Output keeps the same
-                column structure but each record is consolidated into one row.
-                <div className={styles.helpImagePlaceholder}>
-                  <span>Screenshot: output file</span>
+                <div className={styles.helpStepText}>
+                  <strong>{t.step3Title}</strong>
+                  <p>{t.step3Body}</p>
                 </div>
+                <img
+                  src="/help/collapse-rows-by-key/output.jpeg"
+                  alt="Output CSV"
+                  className={styles.helpImage}
+                />
               </li>
             </ol>
-            <p className={styles.helpNote}>
-              Rules: empty rows are skipped. Rows before the first key are
-              dropped. Conflicts are resolved by keeping the latest value.
-            </p>
+
+            <div className={styles.helpRules}>
+              <strong>{t.rulesLabel}</strong> {t.rulesBody}
+            </div>
           </section>
         )}
 
