@@ -380,9 +380,7 @@ export default function IntersiteDistancePage() {
           <div className={styles.settingsGrid}>
             <div className={styles.fieldGroup}>
               <label className={styles.fieldLabel}>Cone half-width (°)</label>
-              <p className={styles.fieldHint}>
-                ±° from boresight. Default 60 = 120° sector width.
-              </p>
+              
               <input
                 type="number"
                 className={styles.input}
@@ -391,10 +389,12 @@ export default function IntersiteDistancePage() {
                 max={180}
                 onChange={(e) => setConeHalfWidth(parseInt(e.target.value) || 60)}
               />
+              <p className={styles.fieldHint}>
+                ±° from boresight. Default 60 = 120° sector width.
+              </p>
             </div>
             <div className={styles.fieldGroup}>
               <label className={styles.fieldLabel}>Max candidates</label>
-              <p className={styles.fieldHint}>Top N neighbors to return per sector.</p>
               <input
                 type="number"
                 className={styles.input}
@@ -403,10 +403,11 @@ export default function IntersiteDistancePage() {
                 max={20}
                 onChange={(e) => setMaxCandidates(parseInt(e.target.value) || 3)}
               />
+              <p className={styles.fieldHint}>Top N neighbors to return per sector.</p>
+              
             </div>
             <div className={styles.fieldGroup}>
               <label className={styles.fieldLabel}>Max distance (m)</label>
-              <p className={styles.fieldHint}>Leave blank for no limit.</p>
               <input
                 type="number"
                 className={styles.input}
@@ -415,6 +416,7 @@ export default function IntersiteDistancePage() {
                 min={0}
                 onChange={(e) => setMaxDistance(e.target.value)}
               />
+              <p className={styles.fieldHint}>Leave blank for no limit.</p>
             </div>
           </div>
           <button
