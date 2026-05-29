@@ -115,7 +115,7 @@ async function loadSiteData() {
 }
 
 // ─── ISD calculation ──────────────────────────────────────────────────────────
-function calcIntersite(siteData, query, coneHalfWidth, maxCandidates, maxDistanceM) {
+function calcIntersite(siteData, query, coneHalfWidth, maxCandidates, maxDistanceM, excludeCoSite) {
   const results = [];
 
   query.forEach(({ lrd, sector }, idx) => {
@@ -137,6 +137,8 @@ function calcIntersite(siteData, query, coneHalfWidth, maxCandidates, maxDistanc
 
     siteData.forEach((target) => {
       if (target.lrd === lrd && target.sector === sector) return;
+      // Exclude co-site: skip any sector on the same site (same LRD).
+      if (excludeCoSite && target.lrd === lrd) return;
 
       const distM = haversine(source.lat, source.lon, target.lat, target.lon);
       if (maxDistanceM && distM > maxDistanceM) return;
@@ -299,6 +301,7 @@ export default function IntersiteDistancePage() {
   const [coneHalfWidth, setConeHalfWidth] = useState(60);
   const [maxCandidates, setMaxCandidates] = useState(3);
   const [maxDistance, setMaxDistance] = useState("");
+  const [excludeCoSite, setExcludeCoSite] = useState(false);
   const [results, setResults] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [parseErrors, setParseErrors] = useState([]);
@@ -322,7 +325,7 @@ export default function IntersiteDistancePage() {
     setTimeout(() => {
       try {
         const maxDist = maxDistance ? parseFloat(maxDistance) : null;
-        const res = calcIntersite(siteData, query, coneHalfWidth, maxCandidates, maxDist);
+        const res = calcIntersite(siteData, query, coneHalfWidth, maxCandidates, maxDist, excludeCoSite);
         setResults(res);
       } catch (e) {
         setParseErrors([...errors, "Processing failed: " + e.message]);
@@ -483,6 +486,17 @@ export default function IntersiteDistancePage() {
               <p className={styles.fieldHint}>Leave blank for no limit.</p>
             </div>
           </div>
+          <label className={styles.checkboxRow}>
+            <input
+              type="checkbox"
+              checked={excludeCoSite}
+              onChange={(e) => setExcludeCoSite(e.target.checked)}
+            />
+            <span>
+              Exclude co-site sectors
+              <span className={styles.fieldHint}> — skip neighbors on the same site (same LRD).</span>
+            </span>
+          </label>
           <button
             className={styles.primaryButton}
             onClick={handleProcess}

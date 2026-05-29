@@ -509,3 +509,28 @@
   color: #a3c4f3 !important;
   font-family: var(--font-mono);
 }
+
+
+.checkboxRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin: 0.75rem 0 1rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.checkboxRow input[type="checkbox"] {
+  appearance: auto;            /* undo any inherited custom styling */
+  -webkit-appearance: checkbox;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;             /* stop flexbox from shrinking it */
+  margin: 0;
+  margin-top: 0.1rem;
+  padding: 0;
+  flex: 0 0 auto;              /* don't let it grow/shrink */
+  accent-color: var(--accent); /* themed check color */
+  cursor: pointer;
+}
