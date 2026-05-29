@@ -115,7 +115,7 @@ async function loadSiteData() {
 }
 
 // ─── ISD calculation ──────────────────────────────────────────────────────────
-function calcIntersite(siteData, query, coneHalfWidth, maxCandidates, maxDistanceM, excludeCoSite) {
+function calcIntersite(siteData, query, coneHalfWidth, maxCandidates, maxDistanceM, excludeCoSite, mode, allowedRanks) {
   const results = [];
 
   query.forEach(({ lrd, sector }, idx) => {
@@ -146,9 +146,10 @@ function calcIntersite(siteData, query, coneHalfWidth, maxCandidates, maxDistanc
       const bearingSrcToTgt = calcBearing(source.lat, source.lon, target.lat, target.lon);
       const bearingTgtToSrc = calcBearing(target.lat, target.lon, source.lat, source.lon);
 
-      // Both cones must face each other
+      // Condition 1 (always): target must fall in the SOURCE's azimuth cone.
       if (!isInCone(bearingSrcToTgt, source.azimuth, coneHalfWidth)) return;
-      if (!isInCone(bearingTgtToSrc, target.azimuth, coneHalfWidth)) return;
+      // Condition 2 (mutual mode only): source must fall in the TARGET's cone.
+      if (mode === "mutual" && !isInCone(bearingTgtToSrc, target.azimuth, coneHalfWidth)) return;
 
       const angleOffsetSrc = Math.round(angleDiff(bearingSrcToTgt, source.azimuth) * 10) / 10;
       const angleOffsetTgt = Math.round(angleDiff(bearingTgtToSrc, target.azimuth) * 10) / 10;
@@ -165,8 +166,31 @@ function calcIntersite(siteData, query, coneHalfWidth, maxCandidates, maxDistanc
       });
     });
 
-    candidates.sort((a, b) => a.distanceM - b.distanceM);
-    const top = candidates.slice(0, maxCandidates);
+    // In source-facing mode, rank each target SITE's matched sectors by how
+    // directly they point back (Offset tgt, ascending = Rank 1), then keep only
+    // the ranks the user enabled. Mutual mode skips this (target already faces back).
+    let filtered = candidates;
+    if (mode === "source") {
+      const bySite = new Map();
+      candidates.forEach((c) => {
+        if (!bySite.has(c.lrdTarget)) bySite.set(c.lrdTarget, []);
+        bySite.get(c.lrdTarget).push(c);
+      });
+      filtered = [];
+      bySite.forEach((sectors) => {
+        sectors
+          .sort((a, b) => a.angleOffsetTgt - b.angleOffsetTgt)
+          .forEach((c, ri) => {
+            const rank = ri + 1; // 1-based offset rank within this site
+            if (allowedRanks.includes(rank)) {
+              filtered.push({ ...c, offsetRank: rank });
+            }
+          });
+      });
+    }
+
+    filtered.sort((a, b) => a.distanceM - b.distanceM);
+    const top = filtered.slice(0, maxCandidates);
 
     if (top.length === 0) {
       results.push({
@@ -188,6 +212,7 @@ function calcIntersite(siteData, query, coneHalfWidth, maxCandidates, maxDistanc
         azimuthSource: source.azimuth,
         clusterSource: source.cluster,
         candidateNo: ci + 1,
+        offsetRank: c.offsetRank ?? null,
         distanceM: c.distanceM,
         bearing: c.bearing,
         angleOffsetSrc: c.angleOffsetSrc,
@@ -302,6 +327,8 @@ export default function IntersiteDistancePage() {
   const [maxCandidates, setMaxCandidates] = useState(3);
   const [maxDistance, setMaxDistance] = useState("");
   const [excludeCoSite, setExcludeCoSite] = useState(false);
+  const [mode, setMode] = useState("mutual"); // "mutual" | "source"
+  const [allowedRanks, setAllowedRanks] = useState([1, 2, 3]);
   const [results, setResults] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [parseErrors, setParseErrors] = useState([]);
@@ -325,7 +352,7 @@ export default function IntersiteDistancePage() {
     setTimeout(() => {
       try {
         const maxDist = maxDistance ? parseFloat(maxDistance) : null;
-        const res = calcIntersite(siteData, query, coneHalfWidth, maxCandidates, maxDist, excludeCoSite);
+        const res = calcIntersite(siteData, query, coneHalfWidth, maxCandidates, maxDist, excludeCoSite, mode, allowedRanks);
         setResults(res);
       } catch (e) {
         setParseErrors([...errors, "Processing failed: " + e.message]);
@@ -333,6 +360,12 @@ export default function IntersiteDistancePage() {
         setProcessing(false);
       }
     }, 10);
+  };
+
+  const toggleRank = (rank) => {
+    setAllowedRanks((prev) =>
+      prev.includes(rank) ? prev.filter((r) => r !== rank) : [...prev, rank].sort()
+    );
   };
 
   const handleReset = () => {
@@ -497,6 +530,45 @@ export default function IntersiteDistancePage() {
               <span className={styles.fieldHint}> — skip neighbors on the same site (same LRD).</span>
             </span>
           </label>
+
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel}>Facing mode</label>
+            <select
+              className={styles.input}
+              value={mode}
+              onChange={(e) => setMode(e.target.value)}
+            >
+              <option value="mutual">Mutual facing (both face each other)</option>
+              <option value="source">Source facing only</option>
+            </select>
+            <p className={styles.fieldHint}>
+              {mode === "mutual"
+                ? "Target must fall in the source cone AND source must fall in the target cone."
+                : "Target only needs to fall in the source cone. Target sectors per site are ranked by how directly they point back (Offset tgt)."}
+            </p>
+          </div>
+
+          {mode === "source" && (
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Keep target ranks (by Offset tgt, per site)</label>
+              <div className={styles.rankRow}>
+                {[1, 2, 3].map((rank) => (
+                  <label key={rank} className={styles.rankCheck}>
+                    <input
+                      type="checkbox"
+                      checked={allowedRanks.includes(rank)}
+                      onChange={() => toggleRank(rank)}
+                    />
+                    <span>Rank {rank}</span>
+                  </label>
+                ))}
+              </div>
+              <p className={styles.fieldHint}>
+                Rank 1 = target sector pointing most directly back at the source.
+              </p>
+            </div>
+          )}
+
           <button
             className={styles.primaryButton}
             onClick={handleProcess}

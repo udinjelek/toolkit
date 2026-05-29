@@ -534,3 +534,28 @@
   accent-color: var(--accent); /* themed check color */
   cursor: pointer;
 }
+
+.rankRow {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.rankCheck {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+.rankCheck input[type="checkbox"] {
+  appearance: auto;
+  -webkit-appearance: checkbox;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
