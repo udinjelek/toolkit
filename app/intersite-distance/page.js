@@ -5,8 +5,23 @@ import Papa from "papaparse";
 import styles from "./page.module.css";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
-// Place your SWAP_PROGRESS.csv in /public/data/
+// Option A: local CSV in /public/data/
 const DATA_URL = "/help/intersite-distance/swap_progress.csv";
+//
+// Option B: Google Sheet published to web as CSV
+//   File → Share → Publish to web → pick the sheet → CSV
+//   Make sure the sheet's column headers match what the parser reads:
+//   Band, Sector, LRD, eNodeBLongitude, eNodeBLatitude, Azimuth, Cluster
+//const DATA_URL =
+  //"https://docs.google.com/spreadsheets/d/e/YOUR_ID/pub?gid=0&single=true&output=csv";
+
+// Cluster allow-list — gates INPUT only (which sectors a user may query as a source).
+// Neighbor candidates are NOT affected; targets in any cluster still appear.
+//   "*"                       → everyone
+//   "UMPR_*"                  → glob match
+//   "UMPR_01"                 → exact match
+//   ["UMPR_*", "XYZ_*"]       → multiple patterns
+const allowedCluster = "UMPR_*";
 
 // ─── Geometry ─────────────────────────────────────────────────────────────────
 function haversine(lat1, lon1, lat2, lon2) {
@@ -38,6 +53,19 @@ function angleDiff(a, b) {
 
 function isInCone(bearing, azimuth, halfWidth) {
   return angleDiff(bearing, azimuth) <= halfWidth;
+}
+
+// Cluster matcher — supports "*", glob (UMPR_*), exact, or an array of patterns.
+function clusterAllowed(cluster, allowed) {
+  const patterns = Array.isArray(allowed) ? allowed : [allowed];
+  return patterns.some((p) => {
+    if (p === "*") return true;
+    const re = new RegExp(
+      "^" + p.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$",
+      "i"
+    );
+    return re.test(cluster || "");
+  });
 }
 
 // ─── Data loading ─────────────────────────────────────────────────────────────
@@ -96,6 +124,12 @@ function calcIntersite(siteData, query, coneHalfWidth, maxCandidates, maxDistanc
 
     if (!source) {
       results.push({ type: "error", sourceNo, lrd, sector });
+      return;
+    }
+
+    // Gate INPUT only — neighbor candidates can still be in any cluster.
+    if (!clusterAllowed(source.cluster, allowedCluster)) {
+      results.push({ type: "blocked", sourceNo, lrd, sector, cluster: source.cluster });
       return;
     }
 
@@ -278,6 +312,7 @@ export default function IntersiteDistancePage() {
   const validResults = results?.filter((r) => r.type === "result") ?? [];
   const errorResults = results?.filter((r) => r.type === "error") ?? [];
   const emptyResults = results?.filter((r) => r.type === "empty") ?? [];
+  const blockedResults = results?.filter((r) => r.type === "blocked") ?? [];
 
   const isReady = siteData && inputText.trim() && !processing;
 
@@ -448,6 +483,12 @@ export default function IntersiteDistancePage() {
               </span>{" "}
               source sectors
             </div>
+
+            {blockedResults.map((r, i) => (
+              <div key={i} className={styles.warning}>
+                Not permitted: <strong>{r.lrd}</strong> sector {r.sector} — outside your allowed cluster.
+              </div>
+            ))}
 
             {errorResults.map((r, i) => (
               <div key={i} className={styles.error}>
