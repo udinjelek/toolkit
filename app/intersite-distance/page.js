@@ -146,10 +146,16 @@ function calcIntersite(siteData, query, coneHalfWidth, maxCandidates, maxDistanc
       const bearingSrcToTgt = calcBearing(source.lat, source.lon, target.lat, target.lon);
       const bearingTgtToSrc = calcBearing(target.lat, target.lon, source.lat, source.lon);
 
-      // Condition 1 (always): target must fall in the SOURCE's azimuth cone.
-      if (!isInCone(bearingSrcToTgt, source.azimuth, coneHalfWidth)) return;
-      // Condition 2 (mutual mode only): source must fall in the TARGET's cone.
-      if (mode === "mutual" && !isInCone(bearingTgtToSrc, target.azimuth, coneHalfWidth)) return;
+      // Cone conditions depend on mode:
+      const srcFaces = isInCone(bearingSrcToTgt, source.azimuth, coneHalfWidth); // target in source cone
+      const tgtFaces = isInCone(bearingTgtToSrc, target.azimuth, coneHalfWidth); // source in target cone
+      if (mode === "mutual") {
+        if (!srcFaces || !tgtFaces) return; // both must face
+      } else if (mode === "source") {
+        if (!srcFaces) return; // only source must face target
+      } else if (mode === "target") {
+        if (!tgtFaces) return; // only target must face source
+      }
 
       const angleOffsetSrc = Math.round(angleDiff(bearingSrcToTgt, source.azimuth) * 10) / 10;
       const angleOffsetTgt = Math.round(angleDiff(bearingTgtToSrc, target.azimuth) * 10) / 10;
@@ -163,14 +169,15 @@ function calcIntersite(siteData, query, coneHalfWidth, maxCandidates, maxDistanc
         sectorTarget: target.sector,
         azimuthTarget: target.azimuth,
         clusterTarget: target.cluster,
+        tgtLat: target.lat,
+        tgtLon: target.lon,
       });
     });
 
-    // In source-facing mode, rank each target SITE's matched sectors by how
-    // directly they point back (Offset tgt, ascending = Rank 1), then keep only
-    // the ranks the user enabled. Mutual mode skips this (target already faces back).
     let filtered = candidates;
     if (mode === "source") {
+      // SOURCE facing: rank each target SITE's matched sectors by how directly
+      // they point back (Offset tgt, ascending = Rank 1). Keep enabled ranks.
       const bySite = new Map();
       candidates.forEach((c) => {
         if (!bySite.has(c.lrdTarget)) bySite.set(c.lrdTarget, []);
@@ -181,11 +188,39 @@ function calcIntersite(siteData, query, coneHalfWidth, maxCandidates, maxDistanc
         sectors
           .sort((a, b) => a.angleOffsetTgt - b.angleOffsetTgt)
           .forEach((c, ri) => {
-            const rank = ri + 1; // 1-based offset rank within this site
+            const rank = ri + 1;
             if (allowedRanks.includes(rank)) {
               filtered.push({ ...c, offsetRank: rank });
             }
           });
+      });
+    } else if (mode === "target") {
+      // TARGET facing: rank is from the TARGET sector's point of view.
+      // For each candidate target sector, look at ALL sectors of the SOURCE site
+      // that fall inside that target's cone, rank them by how directly the target
+      // faces them (offset ascending = Rank 1). The rank of the queried source
+      // sector within that list is this candidate's rank. Keep enabled ranks.
+      const sourceSiteSectors = siteData.filter((s) => s.lrd === lrd);
+      filtered = [];
+      candidates.forEach((c) => {
+        // c corresponds to one target sector (lrdTarget/sectorTarget/azimuthTarget at c's coords).
+        // Rebuild which source-site sectors this target faces.
+        const facedSourceSectors = sourceSiteSectors
+          .map((ss) => {
+            const bTgtToSs = calcBearing(c.tgtLat, c.tgtLon, ss.lat, ss.lon);
+            const inCone = isInCone(bTgtToSs, c.azimuthTarget, coneHalfWidth);
+            const offset = angleDiff(bTgtToSs, c.azimuthTarget);
+            return { sector: ss.sector, inCone, offset };
+          })
+          .filter((x) => x.inCone)
+          .sort((a, b) => a.offset - b.offset);
+
+        const idx = facedSourceSectors.findIndex((x) => x.sector === sector);
+        if (idx === -1) return; // queried source sector not actually faced (safety)
+        const rank = idx + 1;
+        if (allowedRanks.includes(rank)) {
+          filtered.push({ ...c, offsetRank: rank });
+        }
       });
     }
 
@@ -540,15 +575,18 @@ export default function IntersiteDistancePage() {
             >
               <option value="mutual">Mutual facing (both face each other)</option>
               <option value="source">Source facing only</option>
+              <option value="target">Target facing only</option>
             </select>
             <p className={styles.fieldHint}>
               {mode === "mutual"
                 ? "Target must fall in the source cone AND source must fall in the target cone."
-                : "Target only needs to fall in the source cone. Target sectors per site are ranked by how directly they point back (Offset tgt)."}
+                : mode === "source"
+                ? "Target only needs to fall in the source cone. Target sectors per site are ranked by how directly they point back (Offset tgt)."
+                : "Source only needs to fall in the target cone. Target sectors per site are ranked by how directly they point back (Offset tgt)."}
             </p>
           </div>
 
-          {mode === "source" && (
+          {(mode === "source" || mode === "target") && (
             <div className={styles.fieldGroup}>
               <label className={styles.fieldLabel}>Keep target ranks (by Offset tgt, per site)</label>
               <div className={styles.rankRow}>
