@@ -6,14 +6,14 @@ import styles from "./page.module.css";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 // Option A: local CSV in /public/data/
-const DATA_URL = "/help/intersite-distance/swap_progress.csv";
+// const DATA_URL = "/help/intersite-distance/swap_progress.csv";
 //
 // Option B: Google Sheet published to web as CSV
 //   File → Share → Publish to web → pick the sheet → CSV
 //   Make sure the sheet's column headers match what the parser reads:
 //   Band, Sector, LRD, eNodeBLongitude, eNodeBLatitude, Azimuth, Cluster
-//const DATA_URL =
-  //"https://docs.google.com/spreadsheets/d/e/YOUR_ID/pub?gid=0&single=true&output=csv";
+const DATA_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vTfzxJcNYS4UzMnvHWBqtO25arwjXz-pjViqggHHBJv1ZGG612I_QtSc0DTJ1zRm52JO1qH3JoCyC7G/pub?output=csv";
 
 // Cluster allow-list — gates INPUT only (which sectors a user may query as a source).
 // Neighbor candidates are NOT affected; targets in any cluster still appear.
@@ -210,11 +210,16 @@ function parseInput(text) {
   const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
   const query = [];
   const errors = [];
+  // Output format follows the FIRST recognized input row:
+  //   true  → combined "LRD_Sx" (e.g. SLIA_S1)
+  //   false → split LRD + sector columns
+  let combinedFormat = null;
 
   lines.forEach((line, i) => {
     // Format 1: XXXX_SY (e.g. SLIA_S1, PDPO_S3)
     const shortMatch = line.match(/^([A-Za-z]{4})_S(\d+)$/i);
     if (shortMatch) {
+      if (combinedFormat === null) combinedFormat = true;
       query.push({ lrd: shortMatch[1].toUpperCase(), sector: parseInt(shortMatch[2]) });
       return;
     }
@@ -225,6 +230,7 @@ function parseInput(text) {
       const lrd = parts[0].toUpperCase();
       const sector = parseInt(parts[1]);
       if (lrd && !isNaN(sector)) {
+        if (combinedFormat === null) combinedFormat = false;
         query.push({ lrd, sector });
         return;
       }
@@ -233,25 +239,46 @@ function parseInput(text) {
     errors.push(`Line ${i + 1}: "${line}" — unrecognized format`);
   });
 
-  return { query, errors };
+  return { query, errors, combinedFormat: combinedFormat ?? false };
+}
+
+// Format an LRD + sector pair as combined "LRD_Sx" string.
+function combinedLabel(lrd, sector) {
+  return `${lrd}_S${sector}`;
 }
 
 // ─── Download ─────────────────────────────────────────────────────────────────
-function downloadCSV(results) {
-  const headers = [
-    "source_no", "lrd_source", "sector_source", "azimuth_source", "cluster_source",
-    "candidate_no", "distance_m", "bearing",
-    "angle_offset_src", "angle_offset_tgt",
-    "lrd_target", "sector_target", "azimuth_target", "cluster_target",
-  ];
+function downloadCSV(results, combinedFormat) {
+  const headers = combinedFormat
+    ? [
+        "source_no", "lrd_sector_source", "azimuth_source", "cluster_source",
+        "candidate_no", "distance_m", "bearing",
+        "angle_offset_src", "angle_offset_tgt",
+        "lrd_sector_target", "azimuth_target", "cluster_target",
+      ]
+    : [
+        "source_no", "lrd_source", "sector_source", "azimuth_source", "cluster_source",
+        "candidate_no", "distance_m", "bearing",
+        "angle_offset_src", "angle_offset_tgt",
+        "lrd_target", "sector_target", "azimuth_target", "cluster_target",
+      ];
   const rows = results
     .filter((r) => r.type === "result")
-    .map((r) => [
-      r.sourceNo, r.lrdSource, r.sectorSource, r.azimuthSource, r.clusterSource,
-      r.candidateNo, r.distanceM, r.bearing,
-      r.angleOffsetSrc, r.angleOffsetTgt,
-      r.lrdTarget, r.sectorTarget, r.azimuthTarget, r.clusterTarget,
-    ]);
+    .map((r) =>
+      combinedFormat
+        ? [
+            r.sourceNo, combinedLabel(r.lrdSource, r.sectorSource), r.azimuthSource, r.clusterSource,
+            r.candidateNo, r.distanceM, r.bearing,
+            r.angleOffsetSrc, r.angleOffsetTgt,
+            combinedLabel(r.lrdTarget, r.sectorTarget), r.azimuthTarget, r.clusterTarget,
+          ]
+        : [
+            r.sourceNo, r.lrdSource, r.sectorSource, r.azimuthSource, r.clusterSource,
+            r.candidateNo, r.distanceM, r.bearing,
+            r.angleOffsetSrc, r.angleOffsetTgt,
+            r.lrdTarget, r.sectorTarget, r.azimuthTarget, r.clusterTarget,
+          ]
+    );
   const csv = Papa.unparse([headers, ...rows]);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
@@ -275,6 +302,7 @@ export default function IntersiteDistancePage() {
   const [results, setResults] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [parseErrors, setParseErrors] = useState([]);
+  const [combinedFormat, setCombinedFormat] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
 
   useEffect(() => {
@@ -284,8 +312,9 @@ export default function IntersiteDistancePage() {
   }, []);
 
   const handleProcess = () => {
-    const { query, errors } = parseInput(inputText);
+    const { query, errors, combinedFormat: fmt } = parseInput(inputText);
     setParseErrors(errors);
+    setCombinedFormat(fmt);
     if (query.length === 0) return;
 
     setProcessing(true);
@@ -509,8 +538,14 @@ export default function IntersiteDistancePage() {
                     <thead>
                       <tr>
                         <th>src#</th>
-                        <th>LRD source</th>
-                        <th>Sec</th>
+                        {combinedFormat ? (
+                          <th>LRD_Sec source</th>
+                        ) : (
+                          <>
+                            <th>LRD source</th>
+                            <th>Sec</th>
+                          </>
+                        )}
                         <th>Az src</th>
                         <th>Cluster src</th>
                         <th>cand#</th>
@@ -518,8 +553,14 @@ export default function IntersiteDistancePage() {
                         <th>Bearing</th>
                         <th>Offset src</th>
                         <th>Offset tgt</th>
-                        <th>LRD target</th>
-                        <th>Sec</th>
+                        {combinedFormat ? (
+                          <th>LRD_Sec target</th>
+                        ) : (
+                          <>
+                            <th>LRD target</th>
+                            <th>Sec</th>
+                          </>
+                        )}
                         <th>Az tgt</th>
                         <th>Cluster tgt</th>
                       </tr>
@@ -531,8 +572,14 @@ export default function IntersiteDistancePage() {
                           className={r.candidateNo === 1 ? styles.rowFirst : ""}
                         >
                           <td className={styles.cellMono}>{r.sourceNo}</td>
-                          <td className={styles.cellAccent}>{r.lrdSource}</td>
-                          <td className={styles.cellMono}>{r.sectorSource}</td>
+                          {combinedFormat ? (
+                            <td className={styles.cellAccent}>{combinedLabel(r.lrdSource, r.sectorSource)}</td>
+                          ) : (
+                            <>
+                              <td className={styles.cellAccent}>{r.lrdSource}</td>
+                              <td className={styles.cellMono}>{r.sectorSource}</td>
+                            </>
+                          )}
                           <td className={styles.cellMono}>{r.azimuthSource}°</td>
                           <td className={styles.cellMuted}>{r.clusterSource || "—"}</td>
                           <td className={styles.cellMono}>{r.candidateNo}</td>
@@ -540,8 +587,14 @@ export default function IntersiteDistancePage() {
                           <td className={styles.cellMono}>{r.bearing}°</td>
                           <td className={styles.cellOffset}>{r.angleOffsetSrc}°</td>
                           <td className={styles.cellOffset}>{r.angleOffsetTgt}°</td>
-                          <td className={styles.cellAccent}>{r.lrdTarget}</td>
-                          <td className={styles.cellMono}>{r.sectorTarget}</td>
+                          {combinedFormat ? (
+                            <td className={styles.cellAccent}>{combinedLabel(r.lrdTarget, r.sectorTarget)}</td>
+                          ) : (
+                            <>
+                              <td className={styles.cellAccent}>{r.lrdTarget}</td>
+                              <td className={styles.cellMono}>{r.sectorTarget}</td>
+                            </>
+                          )}
                           <td className={styles.cellMono}>{r.azimuthTarget}°</td>
                           <td className={styles.cellMuted}>{r.clusterTarget || "—"}</td>
                         </tr>
@@ -553,7 +606,7 @@ export default function IntersiteDistancePage() {
                 <div className={styles.actions}>
                   <button
                     className={styles.primaryButton}
-                    onClick={() => downloadCSV(results)}
+                    onClick={() => downloadCSV(results, combinedFormat)}
                   >
                     Download CSV
                   </button>
