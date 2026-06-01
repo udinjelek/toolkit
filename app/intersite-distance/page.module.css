@@ -559,3 +559,236 @@
   accent-color: var(--accent);
   cursor: pointer;
 }
+/* ─── Tutorial tabs ───────────────────────────────────────────────────────── */
+.tabBar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.tabButton {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  padding: 0.45rem 0.95rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.tabButton:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.tabActive {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.tabActive:hover {
+  color: #fff;
+}
+
+/* ─── Tutorial body ───────────────────────────────────────────────────────── */
+.tutorialBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.tutorialList {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.tutorialList strong {
+  color: var(--text-primary);
+}
+
+/* ─── Tutorial figure / image ─────────────────────────────────────────────── */
+.tutorialFigure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.tutorialImage {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: block;
+}
+
+.tutorialCaption {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.tutorialCaption strong {
+  color: var(--text-primary);
+}
+
+.tutorialCaption em {
+  color: var(--accent);
+  font-style: normal;
+  font-weight: 500;
+}
+
+/* ─── Rank explanation / example blocks ───────────────────────────────────── */
+.rankExplain {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rankExample {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rankExampleTitle {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.exampleResult {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  margin: 0;
+}
+
+/* ─── General tab — settings list ─────────────────────────────────────────── */
+.settingList {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.settingTerm {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+}
+
+.settingDesc {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.settingDesc strong {
+  color: var(--text-primary);
+}
+
+.settingDesc em {
+  color: var(--accent);
+  font-style: normal;
+  font-weight: 500;
+}
+
+.settingLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.6rem 0 0.5rem;
+}
+
+.inlineTabLink {
+  background: var(--bg-elevated);
+  color: var(--accent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.inlineTabLink:hover {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--text-primary);
+}
+
+.settingModeBrief {
+  display: block;
+  margin-top: 0.4rem;
+}
+
+/* ─── Help header row + language toggle ───────────────────────────────────── */
+.helpHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.langToggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.langButton {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: none;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  transition: all 0.15s ease;
+}
+
+.langButton:hover {
+  color: var(--text-primary);
+}
+
+.langButton + .langButton {
+  border-left: 1px solid var(--border);
+}
+
+.langActive {
+  background: var(--accent);
+  color: #fff;
+}
+
+.langActive:hover {
+  color: #fff;
+}
