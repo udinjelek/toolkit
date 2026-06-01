@@ -472,7 +472,7 @@ function MutualTab({ t }) {
 
       <figure className={styles.tutorialFigure}>
         <Image
-          src={`${IMG_BASE}/intersite_method_mutual_facing_success.jpeg`}
+          src={`${IMG_BASE}/intersite_method_mutual_facing_success.jpg`}
           alt={t.mutualSuccessAlt}
           width={900}
           height={620}
@@ -483,7 +483,7 @@ function MutualTab({ t }) {
 
       <figure className={styles.tutorialFigure}>
         <Image
-          src={`${IMG_BASE}/intersite_method_mutual_facing_failed.jpeg`}
+          src={`${IMG_BASE}/intersite_method_mutual_facing_failed.jpg`}
           alt={t.mutualFailAlt}
           width={900}
           height={620}
@@ -502,7 +502,7 @@ function SourceTab({ t }) {
 
       <figure className={styles.tutorialFigure}>
         <Image
-          src={`${IMG_BASE}/intersite_method_source_facing_only.jpeg`}
+          src={`${IMG_BASE}/intersite_method_source_facing_only.jpg`}
           alt={t.sourceImgAlt}
           width={900}
           height={620}
@@ -541,7 +541,7 @@ function TargetTab({ t }) {
 
       <figure className={styles.tutorialFigure}>
         <Image
-          src={`${IMG_BASE}/intersite_method_target_facing_only.jpeg`}
+          src={`${IMG_BASE}/intersite_method_target_facing_only.jpg`}
           alt={t.targetImgAlt}
           width={1000}
           height={760}
