@@ -8,9 +8,9 @@ const IMG_BASE = "/help/intersite-distance";
 
 const TABS = [
   { id: "general", en: "General", id_: "Umum" },
-  { id: "mutual", en: "Mutual facing", id_: "Mutual facing" },
-  { id: "source", en: "Source facing only", id_: "Source facing only" },
-  { id: "target", en: "Target facing only", id_: "Target facing only" },
+  { id: "mutual", en: "Method: Mutual facing", id_: "Method: Mutual facing" },
+  { id: "source", en: "Method: Source facing only", id_: "Method: Source facing only" },
+  { id: "target", en: "Method: Target facing only", id_: "Method: Target facing only" },
 ];
 
 // Technical terms (azimuth, cone, source, target, sector, rank, bearing) are
