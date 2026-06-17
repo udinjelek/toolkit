@@ -38,6 +38,7 @@ export default function IntersiteDistancePage() {
   const errorResults   = results?.filter((r) => r.type === "error")   ?? [];
   const emptyResults   = results?.filter((r) => r.type === "empty")   ?? [];
   const blockedResults = results?.filter((r) => r.type === "blocked") ?? [];
+  const noBandResults  = results?.filter((r) => r.type === "no_l1800") ?? [];
   const isReady = siteData && inputText.trim() && !processing;
 
   // ── Handlers ───────────────────────────────────────────────────────────────
@@ -276,6 +277,11 @@ export default function IntersiteDistancePage() {
             {errorResults.map((r, i) => (
               <div key={i} className={styles.error}>
                 Not found in data: <strong>{r.lrd}</strong> sector {r.sector}
+              </div>
+            ))}
+            {noBandResults.map((r, i) => (
+              <div key={i} className={styles.error}>
+                band not active in data: <strong>{r.lrd}</strong> sector {r.sector}
               </div>
             ))}
             {emptyResults.map((r, i) => (

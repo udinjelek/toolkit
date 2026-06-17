@@ -83,52 +83,36 @@ export async function loadSiteData() {
 
 // ─── Input parser ─────────────────────────────────────────────────────────────
 // Supported formats per line:
-//   LINA     — bare 4-letter LRD, auto-expands to S1, S2, S3
-//   SLIA_S1  — 4-letter LRD + "_S" + sector
-//   SLIA\t1  — tab separated (paste from Excel)
-//   SLIA,1   — comma separated
+//   LINA     — bare 4-char LRD, auto-expands to S1, S2, S3
+//   LUC7_S1  — 4-char LRD + "_S" + sector
+// LRD is 4 alphanumeric characters (letters and/or digits, e.g. LINA, LUC7).
 
 export function parseInput(text) {
   const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
   const query = [];
   const errors = [];
-  // combinedFormat follows the FIRST recognised row:
-  //   true  → "LRD_Sx" style output columns
-  //   false → split LRD + sector columns
-  let combinedFormat = null;
 
   lines.forEach((line, i) => {
-    // Bare 4-letter LRD (e.g. "LINA") → expand to S1, S2, S3.
-    const bareMatch = line.match(/^([A-Za-z]{4})$/);
+    // Bare 4-char LRD (e.g. "LINA", "LUC7") → expand to S1, S2, S3.
+    const bareMatch = line.match(/^([A-Za-z0-9]{4})$/);
     if (bareMatch) {
-      if (combinedFormat === null) combinedFormat = true;
       const lrd = bareMatch[1].toUpperCase();
       [1, 2, 3].forEach((s) => query.push({ lrd, sector: s }));
       return;
     }
 
-    const shortMatch = line.match(/^([A-Za-z]{4})_S(\d+)$/i);
+    // 4-char LRD + "_S" + sector (e.g. "LUC7_S1").
+    const shortMatch = line.match(/^([A-Za-z0-9]{4})_S(\d+)$/i);
     if (shortMatch) {
-      if (combinedFormat === null) combinedFormat = true;
       query.push({ lrd: shortMatch[1].toUpperCase(), sector: parseInt(shortMatch[2]) });
       return;
-    }
-
-    const parts = line.split(/[\t,]/).map((p) => p.trim());
-    if (parts.length >= 2) {
-      const lrd = parts[0].toUpperCase();
-      const sector = parseInt(parts[1]);
-      if (lrd && !isNaN(sector)) {
-        if (combinedFormat === null) combinedFormat = false;
-        query.push({ lrd, sector });
-        return;
-      }
     }
 
     errors.push(`Line ${i + 1}: "${line}" — unrecognized format`);
   });
 
-  return { query, errors, combinedFormat: combinedFormat ?? false };
+  // Both supported formats use the combined "LRD_Sx" output style.
+  return { query, errors, combinedFormat: true };
 }
 
 // ─── Label helper ─────────────────────────────────────────────────────────────
