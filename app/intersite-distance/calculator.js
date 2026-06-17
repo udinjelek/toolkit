@@ -61,7 +61,18 @@ export function calcIntersite(
     const source = siteData.find((s) => s.lrd === lrd && s.sector === sector);
 
     if (!source) {
-      results.push({ type: "error", sourceNo, lrd, sector });
+      // Distinguish the two failure modes so the user knows what to fix:
+      //   no_l1800 — LRD exists in CSV but has no L1800 band row (band blank/other)
+      //   error    — LRD/sector genuinely not present in the data
+      const lrdUpper = lrd?.toUpperCase();
+      const knownLrds = siteData.knownLrds;
+      const lrdsWithL1800 = siteData.lrdsWithL1800;
+
+      if (knownLrds?.has(lrdUpper) && !lrdsWithL1800?.has(lrdUpper)) {
+        results.push({ type: "no_l1800", sourceNo, lrd, sector });
+      } else {
+        results.push({ type: "error", sourceNo, lrd, sector });
+      }
       return;
     }
 

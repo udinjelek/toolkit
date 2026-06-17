@@ -31,6 +31,19 @@ export async function loadSiteData() {
       skipEmptyLines: true,
       complete: (results) => {
         const seen = new Set();
+
+        // Track every LRD seen in the raw CSV (any band) and which of those have
+        // at least one L1800 row. Lets the calculator tell apart:
+        //   "LRD not in CSV at all"  vs  "LRD exists but has no L1800 band".
+        const knownLrds = new Set();
+        const lrdsWithL1800 = new Set();
+        results.data.forEach((r) => {
+          const lrd = r.LRD?.trim().toUpperCase();
+          if (!lrd) return;
+          knownLrds.add(lrd);
+          if (r.Band === "L1800") lrdsWithL1800.add(lrd);
+        });
+
         const rows = results.data
           .filter((r) => {
             if (r.Band !== "L1800") return false;
@@ -56,6 +69,11 @@ export async function loadSiteData() {
             return true;
           });
 
+        // Attach lookup sets as metadata (non-enumerable so existing code that
+        // iterates/serializes `rows` is unaffected).
+        Object.defineProperty(rows, "knownLrds", { value: knownLrds, enumerable: false });
+        Object.defineProperty(rows, "lrdsWithL1800", { value: lrdsWithL1800, enumerable: false });
+
         resolve(rows);
       },
       error: reject,
@@ -65,6 +83,7 @@ export async function loadSiteData() {
 
 // ─── Input parser ─────────────────────────────────────────────────────────────
 // Supported formats per line:
+//   LINA     — bare 4-letter LRD, auto-expands to S1, S2, S3
 //   SLIA_S1  — 4-letter LRD + "_S" + sector
 //   SLIA\t1  — tab separated (paste from Excel)
 //   SLIA,1   — comma separated
@@ -79,6 +98,15 @@ export function parseInput(text) {
   let combinedFormat = null;
 
   lines.forEach((line, i) => {
+    // Bare 4-letter LRD (e.g. "LINA") → expand to S1, S2, S3.
+    const bareMatch = line.match(/^([A-Za-z]{4})$/);
+    if (bareMatch) {
+      if (combinedFormat === null) combinedFormat = true;
+      const lrd = bareMatch[1].toUpperCase();
+      [1, 2, 3].forEach((s) => query.push({ lrd, sector: s }));
+      return;
+    }
+
     const shortMatch = line.match(/^([A-Za-z]{4})_S(\d+)$/i);
     if (shortMatch) {
       if (combinedFormat === null) combinedFormat = true;
