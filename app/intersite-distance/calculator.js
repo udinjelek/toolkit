@@ -60,7 +60,8 @@ export function calcIntersite(
   mode,
   allowedRanks,
   allowedCluster,
-  maxOffsetTarget
+  maxOffsetTarget,
+  maxOffsetSource
 ) {
   const results = [];
   const modeLabel = MODE_LABELS[mode] ?? mode;
@@ -159,6 +160,9 @@ export function calcIntersite(
       const sourceSiteSectors = siteData.filter((s) => s.lrd === lrd);
       filtered = [];
       candidates.forEach((c) => {
+        // Drop candidates exceeding max offset source FIRST, before ranking.
+        if (maxOffsetSource != null && c.angleOffsetSrc > maxOffsetSource) return;
+
         const facedSourceSectors = sourceSiteSectors
           .map((ss) => {
             const bTgtToSs = calcBearing(c.tgtLat, c.tgtLon, ss.lat, ss.lon);
