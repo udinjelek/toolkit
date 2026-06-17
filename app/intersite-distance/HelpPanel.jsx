@@ -28,10 +28,10 @@ const T = {
 
     inputFormat: (
       <>
-        <strong>Input format:</strong> One row per sector — LRD and sector number
-        separated by a tab or comma. Pasting two columns straight from Excel works
-        (Excel uses tab as the column separator). Three line formats are accepted:{" "}
-        <code>SLIA_S1</code>, <code>SLIA{"\t"}1</code> (tab), or <code>SLIA,1</code> (comma).
+        <strong>Input format:</strong> One row per entry. Two formats are accepted:{" "}
+        <code>SLIA</code> (LRD only — automatically expands to sectors S1, S2 and S3)
+        or <code>SLIA_S1</code> (LRD plus a specific sector number). The LRD is 4
+        characters and may include digits, e.g. <code>LUC7</code>.
       </>
     ),
     settingsIntro: (
@@ -202,10 +202,10 @@ const T = {
 
     inputFormat: (
       <>
-        <strong>Format input:</strong> Satu baris per sector — LRD dan nomor sector
-        dipisah dengan tab atau koma. Menempel (paste) dua kolom langsung dari Excel juga
-        bisa (Excel memakai tab sebagai pemisah kolom). Tiga format baris diterima:{" "}
-        <code>SLIA_S1</code>, <code>SLIA{"\t"}1</code> (tab), atau <code>SLIA,1</code> (koma).
+        <strong>Format input:</strong> Satu baris per entri. Dua format diterima:{" "}
+        <code>SLIA</code> (hanya LRD — otomatis dipecah menjadi sector S1, S2, dan S3)
+        atau <code>SLIA_S1</code> (LRD beserta nomor sector tertentu). LRD terdiri dari
+        4 karakter dan boleh mengandung angka, misalnya <code>LUC7</code>.
       </>
     ),
     settingsIntro: (

@@ -120,18 +120,17 @@ export default function IntersiteDistancePage() {
             <span>Paste sectors</span>
           </div>
           <p className={styles.fieldHint}>
-            Supports 3 formats per line — mix and match freely:
+            Supports 2 formats per line:
             <span className={styles.formatList}>
-              <code>SLIA_S1</code> &nbsp;&middot;&nbsp;
-              <code>SLIA&nbsp;&nbsp;1</code> (tab) &nbsp;&middot;&nbsp;
-              <code>SLIA,1</code> (comma)
+              <code>SLIA</code> (LRD only — expands to S1, S2, S3) &nbsp;&middot;&nbsp;
+              <code>SLIA_S1</code> (LRD + sector)
             </span>
           </p>
           <textarea
             className={styles.textarea}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder={"SLIA_S1\nSLIA_S2\nSLIA\t3\nPDPO,1"}
+            placeholder={"LINA\nLUC7\nSLIA_S1\nSLIA_S2"}
             rows={6}
             spellCheck={false}
           />
