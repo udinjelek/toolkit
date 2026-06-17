@@ -111,8 +111,7 @@ export function parseInput(text) {
     errors.push(`Line ${i + 1}: "${line}" — unrecognized format`);
   });
 
-  // Both supported formats use the combined "LRD_Sx" output style.
-  return { query, errors, combinedFormat: true };
+  return { query, errors };
 }
 
 // ─── Label helper ─────────────────────────────────────────────────────────────
@@ -123,38 +122,22 @@ export function combinedLabel(lrd, sector) {
 
 // ─── CSV export ───────────────────────────────────────────────────────────────
 
-export function downloadCSV(results, combinedFormat) {
-  const headers = combinedFormat
-    ? [
-        "source_no", "lrd_sector_source", "azimuth_source", "cluster_source",
-        "candidate_no", "distance_m", "bearing",
-        "angle_offset_src", "angle_offset_tgt",
-        "lrd_sector_target", "azimuth_target", "cluster_target",
-      ]
-    : [
-        "source_no", "lrd_source", "sector_source", "azimuth_source", "cluster_source",
-        "candidate_no", "distance_m", "bearing",
-        "angle_offset_src", "angle_offset_tgt",
-        "lrd_target", "sector_target", "azimuth_target", "cluster_target",
-      ];
+export function downloadCSV(results) {
+  const headers = [
+    "source_no", "lrd_sector_source", "azimuth_source", "cluster_source",
+    "candidate_no", "distance_m", "bearing",
+    "angle_offset_src", "angle_offset_tgt",
+    "lrd_sector_target", "azimuth_target", "cluster_target",
+  ];
 
   const rows = results
     .filter((r) => r.type === "result")
-    .map((r) =>
-      combinedFormat
-        ? [
-            r.sourceNo, combinedLabel(r.lrdSource, r.sectorSource), r.azimuthSource, r.clusterSource,
-            r.candidateNo, r.distanceM, r.bearing,
-            r.angleOffsetSrc, r.angleOffsetTgt,
-            combinedLabel(r.lrdTarget, r.sectorTarget), r.azimuthTarget, r.clusterTarget,
-          ]
-        : [
-            r.sourceNo, r.lrdSource, r.sectorSource, r.azimuthSource, r.clusterSource,
-            r.candidateNo, r.distanceM, r.bearing,
-            r.angleOffsetSrc, r.angleOffsetTgt,
-            r.lrdTarget, r.sectorTarget, r.azimuthTarget, r.clusterTarget,
-          ]
-    );
+    .map((r) => [
+      r.sourceNo, combinedLabel(r.lrdSource, r.sectorSource), r.azimuthSource, r.clusterSource,
+      r.candidateNo, r.distanceM, r.bearing,
+      r.angleOffsetSrc, r.angleOffsetTgt,
+      combinedLabel(r.lrdTarget, r.sectorTarget), r.azimuthTarget, r.clusterTarget,
+    ]);
 
   const csv = Papa.unparse([headers, ...rows]);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });

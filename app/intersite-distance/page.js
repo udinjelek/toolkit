@@ -30,7 +30,6 @@ export default function IntersiteDistancePage() {
   const [results,        setResults]        = useState(null);
   const [processing,     setProcessing]     = useState(false);
   const [parseErrors,    setParseErrors]    = useState([]);
-  const [combinedFormat, setCombinedFormat] = useState(false);
   const [helpOpen,       setHelpOpen]       = useState(false);
 
   // ── Derived ────────────────────────────────────────────────────────────────
@@ -43,9 +42,8 @@ export default function IntersiteDistancePage() {
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleProcess = () => {
-    const { query, errors, combinedFormat: fmt } = parseInput(inputText);
+    const { query, errors } = parseInput(inputText);
     setParseErrors(errors);
-    setCombinedFormat(fmt);
     if (query.length === 0) return;
 
     setProcessing(true);
@@ -296,11 +294,7 @@ export default function IntersiteDistancePage() {
                     <thead>
                       <tr>
                         <th>src#</th>
-                        {combinedFormat ? (
-                          <th>LRD_Sec source</th>
-                        ) : (
-                          <><th>LRD source</th><th>Sec</th></>
-                        )}
+                        <th>LRD_Sec source</th>
                         <th>Az src</th>
                         <th>Cluster src</th>
                         <th>cand#</th>
@@ -308,11 +302,7 @@ export default function IntersiteDistancePage() {
                         <th>Bearing</th>
                         <th>Offset src</th>
                         <th>Offset tgt</th>
-                        {combinedFormat ? (
-                          <th>LRD_Sec target</th>
-                        ) : (
-                          <><th>LRD target</th><th>Sec</th></>
-                        )}
+                        <th>LRD_Sec target</th>
                         <th>Az tgt</th>
                         <th>Cluster tgt</th>
                       </tr>
@@ -321,11 +311,7 @@ export default function IntersiteDistancePage() {
                       {validResults.map((r, i) => (
                         <tr key={i} className={r.candidateNo === 1 ? styles.rowFirst : ""}>
                           <td className={styles.cellMono}>{r.sourceNo}</td>
-                          {combinedFormat ? (
-                            <td className={styles.cellAccent}>{combinedLabel(r.lrdSource, r.sectorSource)}</td>
-                          ) : (
-                            <><td className={styles.cellAccent}>{r.lrdSource}</td><td className={styles.cellMono}>{r.sectorSource}</td></>
-                          )}
+                          <td className={styles.cellAccent}>{combinedLabel(r.lrdSource, r.sectorSource)}</td>
                           <td className={styles.cellMono}>{r.azimuthSource}°</td>
                           <td className={styles.cellMuted}>{r.clusterSource || "—"}</td>
                           <td className={styles.cellMono}>{r.candidateNo}</td>
@@ -333,11 +319,7 @@ export default function IntersiteDistancePage() {
                           <td className={styles.cellMono}>{r.bearing}°</td>
                           <td className={styles.cellOffset}>{r.angleOffsetSrc}°</td>
                           <td className={styles.cellOffset}>{r.angleOffsetTgt}°</td>
-                          {combinedFormat ? (
-                            <td className={styles.cellAccent}>{combinedLabel(r.lrdTarget, r.sectorTarget)}</td>
-                          ) : (
-                            <><td className={styles.cellAccent}>{r.lrdTarget}</td><td className={styles.cellMono}>{r.sectorTarget}</td></>
-                          )}
+                          <td className={styles.cellAccent}>{combinedLabel(r.lrdTarget, r.sectorTarget)}</td>
                           <td className={styles.cellMono}>{r.azimuthTarget}°</td>
                           <td className={styles.cellMuted}>{r.clusterTarget || "—"}</td>
                         </tr>
@@ -349,7 +331,7 @@ export default function IntersiteDistancePage() {
                 <div className={styles.actions}>
                   <button
                     className={styles.primaryButton}
-                    onClick={() => downloadCSV(results, combinedFormat)}
+                    onClick={() => downloadCSV(results)}
                   >
                     Download CSV
                   </button>
