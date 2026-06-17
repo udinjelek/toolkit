@@ -25,6 +25,7 @@ export default function IntersiteDistancePage() {
   const [excludeCoSite, setExcludeCoSite] = useState(false);
   const [mode,          setMode]          = useState("mutual"); // "mutual" | "source" | "target"
   const [allowedRanks,  setAllowedRanks]  = useState([1, 2, 3]);
+  const [maxOffsetTarget, setMaxOffsetTarget] = useState(""); // source mode only; blank = no limit
 
   // ── UI state ───────────────────────────────────────────────────────────────
   const [results,        setResults]        = useState(null);
@@ -53,9 +54,11 @@ export default function IntersiteDistancePage() {
     setTimeout(() => {
       try {
         const maxDist = maxDistance ? parseFloat(maxDistance) : null;
+        const maxOffsetTgt =
+          mode === "source" && maxOffsetTarget !== "" ? parseFloat(maxOffsetTarget) : null;
         const res = calcIntersite(
           siteData, query, coneHalfWidth, maxCandidates,
-          maxDist, excludeCoSite, mode, allowedRanks, allowedCluster
+          maxDist, excludeCoSite, mode, allowedRanks, allowedCluster, maxOffsetTgt
         );
         setResults(res);
       } catch (e) {
@@ -240,6 +243,25 @@ export default function IntersiteDistancePage() {
             </div>
           )}
 
+          {mode === "source" && (
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Max Offset Target (degree)</label>
+              <input
+                type="number"
+                className={styles.input}
+                value={maxOffsetTarget}
+                onChange={(e) => setMaxOffsetTarget(e.target.value)}
+                placeholder="blank = no limit"
+                min={0}
+                max={180}
+              />
+              <p className={styles.fieldHint}>
+                Drops candidates whose Offset tgt exceeds this before ranking, then
+                re-ranks the survivors. Combines with the rank filter above.
+              </p>
+            </div>
+          )}
+
           <button
             className={styles.primaryButton}
             onClick={handleProcess}
@@ -305,6 +327,7 @@ export default function IntersiteDistancePage() {
                         <th>LRD_Sec target</th>
                         <th>Az tgt</th>
                         <th>Cluster tgt</th>
+                        <th>Mode</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -322,6 +345,7 @@ export default function IntersiteDistancePage() {
                           <td className={styles.cellAccent}>{combinedLabel(r.lrdTarget, r.sectorTarget)}</td>
                           <td className={styles.cellMono}>{r.azimuthTarget}°</td>
                           <td className={styles.cellMuted}>{r.clusterTarget || "—"}</td>
+                          <td className={styles.cellMuted}>{r.mode}</td>
                         </tr>
                       ))}
                     </tbody>

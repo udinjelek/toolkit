@@ -127,7 +127,7 @@ export function downloadCSV(results) {
     "source_no", "lrd_sector_source", "azimuth_source", "cluster_source",
     "candidate_no", "distance_m", "bearing",
     "angle_offset_src", "angle_offset_tgt",
-    "lrd_sector_target", "azimuth_target", "cluster_target",
+    "lrd_sector_target", "azimuth_target", "cluster_target", "mode",
   ];
 
   const rows = results
@@ -136,7 +136,7 @@ export function downloadCSV(results) {
       r.sourceNo, combinedLabel(r.lrdSource, r.sectorSource), r.azimuthSource, r.clusterSource,
       r.candidateNo, r.distanceM, r.bearing,
       r.angleOffsetSrc, r.angleOffsetTgt,
-      combinedLabel(r.lrdTarget, r.sectorTarget), r.azimuthTarget, r.clusterTarget,
+      combinedLabel(r.lrdTarget, r.sectorTarget), r.azimuthTarget, r.clusterTarget, r.mode,
     ]);
 
   const csv = Papa.unparse([headers, ...rows]);

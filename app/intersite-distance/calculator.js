@@ -33,6 +33,13 @@ function isInCone(bearing, azimuth, halfWidth) {
 
 // ─── ISD calculation ──────────────────────────────────────────────────────────
 
+// Human-readable mode names shown in the output table / CSV.
+const MODE_LABELS = {
+  mutual: "Mutual Facing",
+  source: "Source Facing Only",
+  target: "Target Facing Only",
+};
+
 /**
  * For each { lrd, sector } in query, find the nearest neighbor candidates
  * from siteData that satisfy the facing-cone condition(s).
@@ -52,9 +59,11 @@ export function calcIntersite(
   excludeCoSite,
   mode,
   allowedRanks,
-  allowedCluster
+  allowedCluster,
+  maxOffsetTarget
 ) {
   const results = [];
+  const modeLabel = MODE_LABELS[mode] ?? mode;
 
   query.forEach(({ lrd, sector }, idx) => {
     const sourceNo = idx + 1;
@@ -132,6 +141,11 @@ export function calcIntersite(
       filtered = [];
       bySite.forEach((sectors) => {
         sectors
+          // Drop candidates exceeding max offset target FIRST, so the ranks
+          // below are assigned only to survivors (re-rank after removal).
+          .filter((c) =>
+            maxOffsetTarget == null || c.angleOffsetTgt <= maxOffsetTarget
+          )
           .sort((a, b) => a.angleOffsetTgt - b.angleOffsetTgt)
           .forEach((c, ri) => {
             const rank = ri + 1;
@@ -181,6 +195,7 @@ export function calcIntersite(
       results.push({
         type: "result",
         sourceNo,
+        mode: modeLabel,
         lrdSource: lrd,
         sectorSource: sector,
         azimuthSource: source.azimuth,
